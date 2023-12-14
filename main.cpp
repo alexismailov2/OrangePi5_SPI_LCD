@@ -1,7 +1,7 @@
 #include <spi_lcd/ISPI.hpp>
 #include <spi_lcd/ILI9486.hpp>
 #include <wiringPi.h>
-#include <wiringPiSpi.h>
+#include <wiringPiSPI.h>
 #include <iostream>
 #include <thread>
 
