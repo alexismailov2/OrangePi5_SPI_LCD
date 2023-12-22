@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <thread>
 
 #define TFT_MAX_PIXELS_AT_ONCE  32
 
@@ -163,6 +164,7 @@ ILI9486::ILI9486(ISPI &spi)
   _spi.chipSelect(true);
   //Driving ability Setting
   writeCommand(0x11); // Sleep out, also SW reset
+  std::this_thread::sleep_for(std::chrono::milliseconds(120));
   //delay(120);
 
   writeCommand(0x3A); // Interface Pixel Format
@@ -219,6 +221,7 @@ ILI9486::ILI9486(ISPI &spi)
 
   writeCommand(0x29); // Display ON
   //delay(150);
+  std::this_thread::sleep_for(std::chrono::milliseconds(150));
   _spi.chipSelect(false);
 }
 

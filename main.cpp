@@ -2,11 +2,33 @@
 #include <spi_lcd/ILI9486.hpp>
 #include <wiringPi.h>
 #include <wiringPiSPI.h>
+#include <sys/ioctl.h>
+#include <asm/ioctl.h>
+#include <linux/spi/spidev.h>
+
 #include <iostream>
 #include <thread>
 
+int wiringPiSPIDataRWCS(int channel, unsigned char const* txdata, unsigned char *rxdata, uint32_t len, bool cs_change)
+{
+  struct spi_ioc_transfer spi;
+
+  memset (&spi, 0, sizeof (spi)) ;
+
+  spi.tx_buf        = (unsigned long)txdata ;
+  spi.rx_buf        = (unsigned long)rxdata ;
+  spi.len           = len;
+  spi.delay_usecs   = 0;
+  spi.speed_hz      = 1000000;;
+  spi.bits_per_word = 8;
+  spi.cs_change = cs_change ? 1 : 0;
+  return ioctl(wiringPiSPIGetFd(channel), SPI_IOC_MESSAGE(1), &spi) ;
+}
+
 class TestSPI : public ISPI {
 public:
+  int _fd{};
+  bool _cs{};
   TestSPI() {
     wiringPiSetup();
     pinMode(22, OUTPUT);
@@ -14,12 +36,16 @@ public:
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     digitalWrite(22, HIGH);
 
-    pinMode(24, OUTPUT);
-    digitalWrite(24, HIGH);
+    //pinMode(24, OUTPUT);
+    //digitalWrite(24, HIGH);
     pinMode(18, OUTPUT);
     digitalWrite(18, LOW);
-    if (wiringPiSPISetup(0, 10000000) == -1) {
+    _fd = wiringPiSPISetup(0, 1000000);
+    if (_fd == -1) {
       throw std::runtime_error("Could not initialize wiringPi");
+    }
+    if (ioctl(_fd, SPI_IOC_WR_MODE, &mode) < 0) {
+
     }
     system("sudo ./wiringOP/gpio/gpio readall");
 //    spi_TFT->begin(sclk, miso, mosi, -1);
@@ -40,7 +66,8 @@ public:
   }
   void chipSelect(bool enable) override {
     printf("%s", enable ? "~CS " : "\nCS \n");
-    digitalWrite(24, !enable ? HIGH : LOW);
+    _cs = enable;
+    //digitalWrite(24, !enable ? HIGH : LOW);
   }
   void commandSelect(bool enable) override {
     printf("%s", enable ? "\nCMD " : "DAT ");
@@ -56,7 +83,7 @@ public:
       printf("0x%02X ", data[i]);
     }
     printf("\n");
-    wiringPiSPIDataRW(0, data, size);
+    wiringPiSPIDataRWCS(0, data, data, size, _cs);
   }
 };
 
